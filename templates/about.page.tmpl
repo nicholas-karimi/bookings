@@ -1,0 +1,25 @@
+{{ template "base" .}}
+
+
+{{ define "content" }}
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h1>About</h1>
+            <p>This is the about page.</p>
+            <a href="/">Home</a>
+            <a href="/contact">Contact</a>
+
+            <p>This came from tempalet data: {{ index .StringMap "test"}}</p>
+            <p>
+                {{ if ne (index .StringMap "remote_ip") ""}}
+                 Your IP address is: {{ index .StringMap "remote_ip" }}
+                {{ else }}
+                    No IP address set visit <a href="/">home</a> to get yours
+                {{ end }}
+            </p>
+        </div>
+    </div>
+</div>
+
+{{ end }}
