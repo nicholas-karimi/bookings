@@ -1,0 +1,15 @@
+.footer {
+    height: 5em;
+    line-height: 60px;
+    background-color: #333;
+    color: #fff;
+    margin-top: 1.5em;
+    padding: 1em;
+}
+
+.room-img {
+    max-width: 50%;
+}
+.datepicker {
+    z-index: 9999 !important;
+}

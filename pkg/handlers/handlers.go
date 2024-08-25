@@ -47,3 +47,26 @@ func (repo *Repository) About(w http.ResponseWriter, r *http.Request) {
 		StringMap: stringMap,
 	})
 }
+
+func (repo *Repository) IndexPage(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplates(w, "index.page.tmpl", &models.TemplateData{})
+}
+
+func (repo *Repository) GeneralsPage(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplates(w, "generals.page.tmpl", &models.TemplateData{})
+}
+
+func (repo *Repository) MajorsPage(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplates(w, "majors.page.tmpl", &models.TemplateData{})
+}
+
+func (repo *Repository) ReservationPage(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplates(w, "reservation.page.tmpl", &models.TemplateData{})
+}
+
+func (repo *Repository) MakeReservationPage(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplates(w, "make-reservations.page.tmpl", &models.TemplateData{})
+}
+func (repo *Repository) ContactPage(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplates(w, "contact.page.tmpl", &models.TemplateData{})
+}
