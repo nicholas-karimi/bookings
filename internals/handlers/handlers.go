@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nicholas-karimi/bookings/pkg/config"
-	"github.com/nicholas-karimi/bookings/pkg/models"
-	"github.com/nicholas-karimi/bookings/pkg/render"
+	"github.com/nicholas-karimi/bookings/internals/config"
+	"github.com/nicholas-karimi/bookings/internals/models"
+	"github.com/nicholas-karimi/bookings/internals/render"
 )
 
 // setups the repository for the handlers
