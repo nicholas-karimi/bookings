@@ -1,5 +1,7 @@
 package models
 
+import "github.com/nicholas-karimi/bookings/internals/forms"
+
 // hold dtaa sent from handlers to templates
 type TemplateData struct {
 	StringMap map[string]string
@@ -10,4 +12,5 @@ type TemplateData struct {
 	Flash     string
 	Warning   string
 	Error     string
+	Form      *forms.Form
 }

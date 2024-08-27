@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"flag"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/nicholas-karimi/bookings/internals/config"
 	"github.com/nicholas-karimi/bookings/internals/handlers"
+	"github.com/nicholas-karimi/bookings/internals/models"
 	"github.com/nicholas-karimi/bookings/internals/render"
 )
 
@@ -19,6 +21,9 @@ var app config.AppConfig
 var session *scs.SessionManager
 
 func main() {
+	// store sessiom
+	gob.Register(models.Reservation{})
+
 	addr := flag.String("addr", ":"+portNumber, "Serving Http connection")
 
 	flag.Parse()

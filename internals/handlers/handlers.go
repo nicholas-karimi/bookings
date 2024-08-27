@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nicholas-karimi/bookings/internals/config"
+	"github.com/nicholas-karimi/bookings/internals/forms"
 	"github.com/nicholas-karimi/bookings/internals/models"
 	"github.com/nicholas-karimi/bookings/internals/render"
 )
@@ -90,7 +91,61 @@ func (repo *Repository) AvailabilityJsonData(w http.ResponseWriter, r *http.Requ
 	w.Write(out)
 }
 func (repo *Repository) MakeReservationPage(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplates(w, "make-reservations.page.tmpl", r, &models.TemplateData{})
+	// renepopulate the form with data when theres an error
+	var emptyReservation models.Reservation
+	data := make(map[string]interface{})
+	data["reservation"] = emptyReservation
+
+	render.RenderTemplates(w, "make-reservations.page.tmpl", r, &models.TemplateData{
+
+		Form: forms.New(nil),
+		Data: data,
+	})
+}
+
+// PostReservationPage will handle the posting of the form
+func (repo *Repository) PostReservationPage(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		// could not parse form
+		w.Write([]byte("ParseForm() err: " + err.Error()))
+		return
+	}
+
+	reservation := models.Reservation{
+		FirstName: r.Form.Get("first_name"),
+		LastName:  r.Form.Get("last_name"),
+		Email:     r.Form.Get("email"),
+		Phone:     r.Form.Get("phone"),
+	}
+
+	// create a new form
+	form := forms.New(r.PostForm)
+
+	// check if form is valid
+	// form.Has("first_name", r)
+	form.Required("first_name", "last_name", "email", "phone")
+	form.MinLength("first_name", 3, r)
+	form.IsEmail("email", r)
+	if !form.Valid() {
+		data := make(map[string]interface{})
+		data["reservation"] = reservation
+		render.RenderTemplates(w, "make-reservations.page.tmpl", r, &models.TemplateData{
+			Form: form,
+			Data: data,
+		})
+		return
+	}
+
+	// pass the date to a sessiom
+
+	repo.App.Session.Put(r.Context(), "reservation", reservation)
+
+	http.Redirect(w, r, "/reservation-summary", http.StatusSeeOther)
+}
+
+func (repo *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplates(w, "reservation-summary.page.tmpl", r, &models.TemplateData{})
 }
 func (repo *Repository) ContactPage(w http.ResponseWriter, r *http.Request) {
 	render.RenderTemplates(w, "contact.page.tmpl", r, &models.TemplateData{})
