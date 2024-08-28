@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/nicholas-karimi/bookings/internals/config"
@@ -145,7 +146,23 @@ func (repo *Repository) PostReservationPage(w http.ResponseWriter, r *http.Reque
 }
 
 func (repo *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplates(w, "reservation-summary.page.tmpl", r, &models.TemplateData{})
+	reservation, ok := repo.App.Session.Get(r.Context(), "reservation").(models.Reservation)
+
+	if !ok {
+		log.Println("cannot get item from reservation")
+		repo.App.Session.Put(r.Context(), "error", "can't get reservation from session")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+
+	}
+
+	// remove the reservation from the session
+	repo.App.Session.Remove(r.Context(), "reservation")
+	data := make(map[string]interface{})
+	data["reservation"] = reservation
+	render.RenderTemplates(w, "reservation-summary.page.tmpl", r, &models.TemplateData{
+		Data: data,
+	})
 }
 func (repo *Repository) ContactPage(w http.ResponseWriter, r *http.Request) {
 	render.RenderTemplates(w, "contact.page.tmpl", r, &models.TemplateData{})
