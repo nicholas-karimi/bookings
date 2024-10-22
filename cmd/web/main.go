@@ -21,15 +21,34 @@ var app config.AppConfig
 var session *scs.SessionManager
 
 func main() {
-	// store sessiom
-	gob.Register(models.Reservation{})
-
+	
+	err := run()
+	if err != nil {
+		log.Fatal(err)
+	}
 	addr := flag.String("addr", ":"+portNumber, "Serving Http connection")
 
 	flag.Parse()
 
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	srv := &http.Server{
+		Addr:     *addr,
+		Handler:  routes(&app),
+		ErrorLog: errorLog,
+	}
+
+	infoLog.Printf("Starting server on %s\n", *addr)
+	err = srv.ListenAndServe()
+	errorLog.Fatal(err)
+}
+
+
+func run() error {
+	// store sessiom
+	gob.Register(models.Reservation{})
+
+
 
 	// togle truw in prod
 	app.Inproduction = false
@@ -45,6 +64,7 @@ func main() {
 	template_cache, err := render.CreateTemplateCache()
 	if err != nil {
 		log.Fatal("cannot create template cache", err)
+		return err
 	}
 
 	app.TemplateCache = template_cache
@@ -55,13 +75,6 @@ func main() {
 	repo := handlers.NewRepo(&app)
 	handlers.NewHandlers(repo)
 
-	srv := &http.Server{
-		Addr:     *addr,
-		Handler:  routes(&app),
-		ErrorLog: errorLog,
-	}
 
-	infoLog.Printf("Starting server on %s\n", *addr)
-	err = srv.ListenAndServe()
-	errorLog.Fatal(err)
+	return nil
 }
