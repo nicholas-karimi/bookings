@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/nicholas-karimi/bookings/internals/helpers"
 	"net/http"
 
 	"github.com/nicholas-karimi/bookings/internals/config"
@@ -33,23 +33,15 @@ func NewHandlers(r *Repository) {
 }
 
 func (repo *Repository) Home(w http.ResponseWriter, r *http.Request) {
-	remoteIP := r.RemoteAddr
 
-	repo.App.Session.Put(r.Context(), "remote_ip", remoteIP)
+	//repo.App.Session.Put(r.Context(), "remote_ip", remoteIP)
 
 	render.RenderTemplates(w, "home.page.tmpl", r, &models.TemplateData{})
 }
 
 func (repo *Repository) About(w http.ResponseWriter, r *http.Request) {
 
-	stringMap := make(map[string]string)
-	stringMap["test"] = "Hello, again"
-
-	remoteIP := repo.App.Session.GetString(r.Context(), "remote_ip")
-	stringMap["remote_ip"] = remoteIP
-	render.RenderTemplates(w, "about.page.tmpl", r, &models.TemplateData{
-		StringMap: stringMap,
-	})
+	render.RenderTemplates(w, "about.page.tmpl", r, &models.TemplateData{})
 }
 
 func (repo *Repository) IndexPage(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +79,11 @@ func (repo *Repository) AvailabilityJsonData(w http.ResponseWriter, r *http.Requ
 		Ok:      true,
 		Message: "Available!",
 	}
-	out, _ := json.MarshalIndent(resp, "", "   ")
+	out, err := json.MarshalIndent(resp, "", "   ")
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
 }
@@ -109,8 +105,10 @@ func (repo *Repository) PostReservationPage(w http.ResponseWriter, r *http.Reque
 	err := r.ParseForm()
 	if err != nil {
 		// could not parse form
-		w.Write([]byte("ParseForm() err: " + err.Error()))
+		//w.Write([]byte("ParseForm() err: " + err.Error()))
+		helpers.ServerError(w, err)
 		return
+
 	}
 
 	reservation := models.Reservation{
@@ -149,7 +147,8 @@ func (repo *Repository) ReservationSummary(w http.ResponseWriter, r *http.Reques
 	reservation, ok := repo.App.Session.Get(r.Context(), "reservation").(models.Reservation)
 
 	if !ok {
-		log.Println("cannot get item from reservation")
+		//log.Println("cannot get item from reservation")
+		repo.App.ErrorLog.Println("Cannot get error from session")
 		repo.App.Session.Put(r.Context(), "error", "can't get reservation from session")
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return

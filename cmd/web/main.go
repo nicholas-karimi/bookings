@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/gob"
 	"flag"
+	"github.com/nicholas-karimi/bookings/internals/helpers"
 	"log"
 	"net/http"
 	"os"
@@ -19,9 +20,11 @@ const portNumber = "8080"
 
 var app config.AppConfig
 var session *scs.SessionManager
+var infoLog *log.Logger
+var errorLog *log.Logger
 
 func main() {
-	
+
 	err := run()
 	if err != nil {
 		log.Fatal(err)
@@ -43,15 +46,18 @@ func main() {
 	errorLog.Fatal(err)
 }
 
-
 func run() error {
 	// store sessiom
 	gob.Register(models.Reservation{})
 
-
-
 	// togle truw in prod
 	app.Inproduction = false
+
+	infoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime|log.Lshortfile)
+	app.InfoLog = infoLog
+
+	errorLog = log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	app.ErrorLog = errorLog
 
 	session = scs.New()
 	session.Lifetime = 24 * time.Hour
@@ -70,11 +76,10 @@ func run() error {
 	app.TemplateCache = template_cache
 	// app.UseCache = false
 
-	render.NewTemplates(&app)
-
 	repo := handlers.NewRepo(&app)
 	handlers.NewHandlers(repo)
-
+	render.NewTemplates(&app)
+	helpers.NewHelpers(&app)
 
 	return nil
 }
