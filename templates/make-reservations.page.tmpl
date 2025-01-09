@@ -11,7 +11,7 @@
                 <!-- get data from form -->
                 {{ $res := index .Data "reservation" }}
                 <form action="/make-reservations" method="post" class="" novalidate>
-                    <!-- load csrd token -->
+                    <!-- load csrf token -->
                      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" >
                     <div class="form-group mt-5">
                         <label for="first_name">First Name</label>
@@ -49,6 +49,15 @@
                         {{ end }}
                         <input type="text" class="form-control" id="phone" name="phone" value="{{$res.Phone}}" autocomplete="off" required>
                     </div>
+                    <div class="form-group">
+                        <label for="start_date"> Start Date </label>
+                        <input type="text" name="start_date" id="start_date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="end_date"> End Date </label>
+                         <input type="text" name="end_date" id="end_date" class="form-control">
+                    </div>
+                    <input type="hidden" name="room_id" value="1">
                     <hr>
                     <button type="submit" class="btn btn-primary">Make Reservation</button>
                 </form>

@@ -3,10 +3,10 @@ package render
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
-	"html/template"
 
 	"github.com/justinas/nosurf"
 	"github.com/nicholas-karimi/bookings/internals/config"
@@ -18,8 +18,8 @@ var functions = template.FuncMap{}
 var app *config.AppConfig
 var pathToTemplates = "./templates" //becasue  were not running from root
 
-
-func NewTemplates(a *config.AppConfig) {
+// NewRender sets config dor the template package
+func NewRenderer(a *config.AppConfig) {
 	app = a
 }
 
@@ -31,7 +31,7 @@ func AddDefaultData(template_data *models.TemplateData, r *http.Request) *models
 	return template_data
 }
 
-func RenderTemplates(w http.ResponseWriter, tmpl string, r *http.Request, template_data *models.TemplateData) error {
+func Template(w http.ResponseWriter, tmpl string, r *http.Request, template_data *models.TemplateData) error {
 
 	var tc map[string]*template.Template
 	if app.UseCache {

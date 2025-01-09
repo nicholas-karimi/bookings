@@ -3,8 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nicholas-karimi/bookings/internals/driver"
 	"github.com/nicholas-karimi/bookings/internals/helpers"
+	"github.com/nicholas-karimi/bookings/internals/repository"
+	"github.com/nicholas-karimi/bookings/internals/repository/dbrepo"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/nicholas-karimi/bookings/internals/config"
 	"github.com/nicholas-karimi/bookings/internals/forms"
@@ -18,16 +23,18 @@ var Repo *Repository
 // repository type
 type Repository struct {
 	App *config.AppConfig
+	DB  repository.DatabaseRepo
 }
 
 // cretaes a new repository
-func NewRepo(a *config.AppConfig) *Repository {
+func NewRepo(a *config.AppConfig, db *driver.DB) *Repository {
 	return &Repository{
 		App: a,
+		DB:  dbrepo.NewPostgresRepo(db.SQL, a),
 	}
 }
 
-// sets repo forthe handlers
+// NewHandlers sets repo forthe handlers
 func NewHandlers(r *Repository) {
 	Repo = r
 }
@@ -36,28 +43,28 @@ func (repo *Repository) Home(w http.ResponseWriter, r *http.Request) {
 
 	//repo.App.Session.Put(r.Context(), "remote_ip", remoteIP)
 
-	render.RenderTemplates(w, "home.page.tmpl", r, &models.TemplateData{})
+	render.Template(w, "home.page.tmpl", r, &models.TemplateData{})
 }
 
 func (repo *Repository) About(w http.ResponseWriter, r *http.Request) {
 
-	render.RenderTemplates(w, "about.page.tmpl", r, &models.TemplateData{})
+	render.Template(w, "about.page.tmpl", r, &models.TemplateData{})
 }
 
 func (repo *Repository) IndexPage(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplates(w, "index.page.tmpl", r, &models.TemplateData{})
+	render.Template(w, "index.page.tmpl", r, &models.TemplateData{})
 }
 
 func (repo *Repository) GeneralsPage(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplates(w, "generals.page.tmpl", r, &models.TemplateData{})
+	render.Template(w, "generals.page.tmpl", r, &models.TemplateData{})
 }
 
 func (repo *Repository) MajorsPage(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplates(w, "majors.page.tmpl", r, &models.TemplateData{})
+	render.Template(w, "majors.page.tmpl", r, &models.TemplateData{})
 }
 
 func (repo *Repository) AvailabilityPage(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplates(w, "search-availability.page.tmpl", r, &models.TemplateData{})
+	render.Template(w, "search-availability.page.tmpl", r, &models.TemplateData{})
 }
 
 func (repo *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +100,7 @@ func (repo *Repository) MakeReservationPage(w http.ResponseWriter, r *http.Reque
 	data := make(map[string]interface{})
 	data["reservation"] = emptyReservation
 
-	render.RenderTemplates(w, "make-reservations.page.tmpl", r, &models.TemplateData{
+	render.Template(w, "make-reservations.page.tmpl", r, &models.TemplateData{
 
 		Form: forms.New(nil),
 		Data: data,
@@ -111,13 +118,50 @@ func (repo *Repository) PostReservationPage(w http.ResponseWriter, r *http.Reque
 
 	}
 
+	// Parse Dates
+	sd := r.Form.Get("start_date")
+	ed := r.Form.Get("end_date")
+
+	// 2024-01-01 -> cast to this - 01/02 03:04:05PM '06 -0700
+	layout := "2006-01-02"
+	startDate, err := time.Parse(layout, sd)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	endDate, err := time.Parse(layout, ed)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	//Parse room id
+	roomID, err := strconv.Atoi(r.Form.Get("room_id"))
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	// Check if the room exists
+	//exists, err := dbrepo.RoomExists(roomID)
+	//if err != nil {
+	//	helpers.ServerError(w, err)
+	//	return
+	//}
+	//if !exists {
+	//	http.Error(w, "Invalid room ID", http.StatusBadRequest)
+	//	return
+	//}
+
 	reservation := models.Reservation{
 		FirstName: r.Form.Get("first_name"),
 		LastName:  r.Form.Get("last_name"),
 		Email:     r.Form.Get("email"),
 		Phone:     r.Form.Get("phone"),
+		StartDate: startDate,
+		EndDate:   endDate,
+		RoomID:    roomID,
 	}
-
+	// Validate the form
 	// create a new form
 	form := forms.New(r.PostForm)
 
@@ -129,14 +173,34 @@ func (repo *Repository) PostReservationPage(w http.ResponseWriter, r *http.Reque
 	if !form.Valid() {
 		data := make(map[string]interface{})
 		data["reservation"] = reservation
-		render.RenderTemplates(w, "make-reservations.page.tmpl", r, &models.TemplateData{
+		render.Template(w, "make-reservations.page.tmpl", r, &models.TemplateData{
 			Form: form,
 			Data: data,
 		})
 		return
 	}
 
-	// pass the date to a sessiom
+	// Insert reservation into DB
+	newReservationID, err := repo.DB.InsertReservation(reservation)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	restriction := models.RoomRestriction{
+
+		StartDate:     startDate,
+		EndDate:       endDate,
+		RoomID:        roomID,
+		ReservationID: newReservationID,
+		RestrictionID: 1,
+	}
+	err = repo.DB.InsertRoomRestriction(restriction)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	// Store reservation in session and redirect
 
 	repo.App.Session.Put(r.Context(), "reservation", reservation)
 
@@ -159,10 +223,10 @@ func (repo *Repository) ReservationSummary(w http.ResponseWriter, r *http.Reques
 	repo.App.Session.Remove(r.Context(), "reservation")
 	data := make(map[string]interface{})
 	data["reservation"] = reservation
-	render.RenderTemplates(w, "reservation-summary.page.tmpl", r, &models.TemplateData{
+	render.Template(w, "reservation-summary.page.tmpl", r, &models.TemplateData{
 		Data: data,
 	})
 }
 func (repo *Repository) ContactPage(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplates(w, "contact.page.tmpl", r, &models.TemplateData{})
+	render.Template(w, "contact.page.tmpl", r, &models.TemplateData{})
 }

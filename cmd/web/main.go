@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/gob"
 	"flag"
+	"github.com/nicholas-karimi/bookings/internals/driver"
 	"github.com/nicholas-karimi/bookings/internals/helpers"
 	"log"
 	"net/http"
@@ -25,10 +26,11 @@ var errorLog *log.Logger
 
 func main() {
 
-	err := run()
+	db, err := run()
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.SQL.Close()
 	addr := flag.String("addr", ":"+portNumber, "Serving Http connection")
 
 	flag.Parse()
@@ -46,9 +48,13 @@ func main() {
 	errorLog.Fatal(err)
 }
 
-func run() error {
-	// store sessiom
+func run() (*driver.DB, error) {
+	// store session
 	gob.Register(models.Reservation{})
+	gob.Register(models.User{})
+	gob.Register(models.Room{})
+	gob.Register(models.Restriction{})
+	gob.Register(models.RoomRestriction{})
 
 	// togle truw in prod
 	app.Inproduction = false
@@ -67,19 +73,28 @@ func run() error {
 
 	app.Session = session
 
+	//connect to database
+	log.Println("Connecting to database...")
+	db, err := driver.ConnectionSQL("host=localhost port=5432 dbname=bookings user=admin password=Incorrect")
+
+	if err != nil {
+		log.Fatal("Cannot connect to database:", err)
+	}
+	log.Println("Connected to database.")
+
 	template_cache, err := render.CreateTemplateCache()
 	if err != nil {
 		log.Fatal("cannot create template cache", err)
-		return err
+		return nil, err
 	}
 
 	app.TemplateCache = template_cache
 	// app.UseCache = false
 
-	repo := handlers.NewRepo(&app)
+	repo := handlers.NewRepo(&app, db)
 	handlers.NewHandlers(repo)
-	render.NewTemplates(&app)
+	render.NewRenderer(&app)
 	helpers.NewHelpers(&app)
 
-	return nil
+	return db, nil
 }
