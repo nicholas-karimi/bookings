@@ -2,6 +2,7 @@ package dbrepo
 
 import (
 	"context"
+	"fmt"
 	"github.com/nicholas-karimi/bookings/internals/models"
 	"time"
 )
@@ -105,9 +106,10 @@ func (m *postgresDBRepo) SearchAvailabilityForAllRooms(start, end time.Time) ([]
 	query := `SELECT r.id, r.room_name 
 					from rooms r WHERE r.id 
 					NOT IN (SELECT rr.room_id from room_restrictions rr where $1
-					                        < rr.end_date and $1 > rr.start_date);`
+					                        < rr.end_date and $2 > rr.start_date);`
 	rows, err := m.DB.QueryContext(ctx, query, start, end)
 	if err != nil {
+		fmt.Println("Error executing query:", err)
 		return rooms, err
 	}
 	for rows.Next() {

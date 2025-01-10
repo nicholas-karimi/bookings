@@ -7,7 +7,7 @@
         <div class="col-md-6 ">
             <h1 class="mt-5">Search Room Availability</h1>
 
-            <form action="/search-availability" class="needs-validation"method="post" novalidate>
+            <form action="/search-availability" class="needs-validation" method="post" novalidate>
                 <input type="hidden" name="csrf_token" value="{{.CSRFToken}}" id="">
                 <div class="row" id="reservation-dates">
                     <div class="col-md-6">
@@ -18,8 +18,8 @@
                     </div>
                 </div>
                 <div class="form-group mt-5">
-                    <a href="/search-avalibility-json" type="submit" class="btn btn-primary">Search Availability</a>
-
+                    <a href="/search-availability" type="submit" class="btn btn-sm btn-warning disabled"  >Search Availability </a>
+                     <button type="submit" class="btn btn-primary">Search Availability</button>
                 </div>
             </form>
            

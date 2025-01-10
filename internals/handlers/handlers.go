@@ -72,7 +72,52 @@ func (repo *Repository) PostAvailability(w http.ResponseWriter, r *http.Request)
 	start := r.PostForm.Get("start")
 	end := r.PostForm.Get("end")
 
-	w.Write([]byte(fmt.Sprintf("start date is %s and end date is %s", start, end)))
+	// 2024-01-01 -> cast to this - 01/02 03:04:05PM '06 -0700
+	layout := "2006-01-02"
+	startDate, err := time.Parse(layout, start)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	endDate, err := time.Parse(layout, end)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	// Fetch rooms availability
+	rooms, err := repo.DB.SearchAvailabilityForAllRooms(startDate, endDate)
+	if err != nil {
+		fmt.Println("Error fetching room availability:", err)
+		return
+	}
+
+	//fmt.Println("Found rooms:", len(rooms))
+	//for _, room := range rooms {
+	//	//fmt.Println("Room:", room) // Print room details for debugging
+	//	repo.App.InfoLog.Println("ROOM", room.ID, room.RoomName)
+	//}
+	if len(rooms) == 0 {
+		// no availability
+		//repo.App.InfoLog.Println("No rooms available")
+		repo.App.Session.Put(r.Context(), "error", "No rooms available for dates selected.")
+		http.Redirect(w, r, "/search-availability", http.StatusSeeOther)
+		return
+	}
+
+	data := make(map[string]interface{})
+	data["rooms"] = rooms
+	//w.Write([]byte(fmt.Sprintf("start date is %s and end date is %s", start, end)))
+
+	res := models.Reservation{
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
+	repo.App.Session.Put(r.Context(), "reservation", res)
+
+	render.Template(w, "choose_room.page.tmpl", r, &models.TemplateData{
+		Data: data,
+	})
 }
 
 type jsonResponse struct {
